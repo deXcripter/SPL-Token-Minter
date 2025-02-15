@@ -5,14 +5,22 @@ import {
   WalletDisconnectButton,
   WalletMultiButton,
 } from "@solana/wallet-adapter-react-ui";
-import { Connection } from "@solana/web3.js";
+import {
+  Connection,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+} from "@solana/web3.js";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 
 function Home() {
-  const { publicKey, sendTransaction } = useWallet();
+  const { publicKey, sendTransaction, connected } = useWallet();
   const [solBalance, setSolBalance] = useState<number | null>(0);
   const [solBalanceLoading, setSolBalanceLoading] = useState(false);
+  const [receipientAddress, setReceipientAddress] = useState<any>("");
+  const [transferAmount, setTransfrAmount] = useState<number>(0);
+  const [sendingTransaction, setSendingTransaction] = useState(false);
 
   const connection = new Connection("https://api.devnet.solana.com");
   useEffect(() => {
@@ -20,7 +28,7 @@ function Home() {
   });
 
   const setBalance = async () => {
-    if (!publicKey) return;
+    if (!publicKey || !receipientAddress) return;
     const conn = await connection.getBalance(publicKey);
     setSolBalance(conn / 1000000000);
   };
@@ -49,9 +57,45 @@ function Home() {
     }
   };
 
+  const sendSol = async () => {
+    if (!publicKey) return;
+    setSendingTransaction(true);
+
+    try {
+      const tx = new Transaction();
+
+      tx.add(
+        SystemProgram.transfer({
+          fromPubkey: publicKey,
+          toPubkey: receipientAddress,
+          lamports: transferAmount * 1e9,
+        })
+      );
+      const { blockhash, lastValidBlockHeight } =
+        await connection.getLatestBlockhash();
+
+      tx.feePayer = publicKey;
+      tx.recentBlockhash = blockhash;
+
+      const signature = await sendTransaction(tx, connection);
+      await connection.confirmTransaction({
+        blockhash,
+        signature,
+        lastValidBlockHeight,
+      });
+
+      toast.success(`Transaction completed: ${signature}`);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSendingTransaction(false);
+      setBalance();
+    }
+  };
+
   return (
     <div className="h-screen w-[100vw]  flex justify-center items-center">
-      <section className="w-[40%] h-[50%] bg-blue-200 py-5 rounded-md text-slate-900">
+      <section className="w-[40%] h-fit bg-blue-200 py-5 rounded-md text-slate-900">
         <div className="flex justify-between mx-10">
           <WalletMultiButton />
           <WalletDisconnectButton />
@@ -60,18 +104,45 @@ function Home() {
         <div className="flex p-10">
           <h1 className="text-2xl">
             Wallet Balance:
-            {typeof solBalance === "number"
+            {connected
               ? solBalance?.toString() + " sol"
               : "Wallet not Connected"}
           </h1>
         </div>
-        <div className="px-10">
+        <div className={`px-10`}>
           <button
             onClick={recieveSol}
-            className="bg-red-300 px-5 py-2 rounded-md"
+            disabled={!connected}
+            className={` px-5 py-2 rounded-md ${
+              connected ? "bg-red-300" : "cursor-not-allowed bg-slate-400"
+            }`}
           >
             Recieve Airdrop
           </button>
+
+          <div className="flex flex-col mt-5">
+            <input
+              type="text"
+              placeholder="Receipient Address"
+              value={receipientAddress}
+              onChange={(e) => setReceipientAddress(e.target.value)}
+              className="p-2 rounded-md"
+            />
+            <input
+              type="number"
+              placeholder="Amount"
+              value={transferAmount}
+              onChange={(e) => setTransfrAmount(Number(e.target.value))}
+              className="p-2 rounded-md mt-2"
+            />
+            <button
+              onClick={sendSol}
+              disabled={sendingTransaction}
+              className={`bg-red-300 px-5 py-2 rounded-md mt-2`}
+            >
+              Send Sol
+            </button>
+          </div>
         </div>
       </section>
     </div>
