@@ -9,6 +9,7 @@ import {
   Connection,
   LAMPORTS_PER_SOL,
   PublicKey,
+  sendAndConfirmTransaction,
   SystemProgram,
   Transaction,
 } from "@solana/web3.js";
@@ -19,9 +20,12 @@ function Home() {
   const { publicKey, sendTransaction, connected } = useWallet();
   const [solBalance, setSolBalance] = useState<number | null>(0);
   const [solBalanceLoading, setSolBalanceLoading] = useState(false);
-  const [receipientAddress, setReceipientAddress] = useState<any>("");
+  const [receipientAddress, setReceipientAddress] = useState<string>("");
   const [transferAmount, setTransfrAmount] = useState<string>("");
   const [sendingTransaction, setSendingTransaction] = useState(false);
+  // const user2Addr = new PublicKey(
+  //   "E2D9a6ENW2nejH4A3stmqEnqFkfWiZk2m1aFRhFM1tiQ"
+  // );
 
   const connection = new Connection("https://api.devnet.solana.com");
 
@@ -30,7 +34,6 @@ function Home() {
   }, [connected]);
 
   const setBalance = async () => {
-    console.log(publicKey);
     if (!publicKey) return;
     const conn = await connection.getBalance(publicKey);
     setSolBalance(conn / LAMPORTS_PER_SOL);
@@ -62,6 +65,8 @@ function Home() {
 
   const sendSol = async () => {
     if (!publicKey) return;
+    if (receipientAddress)
+      return toast.error("Please enter receipient address");
     setSendingTransaction(true);
 
     try {
@@ -70,22 +75,24 @@ function Home() {
       tx.add(
         SystemProgram.transfer({
           fromPubkey: publicKey,
-          toPubkey: receipientAddress,
+          toPubkey: new PublicKey(receipientAddress),
           lamports: parseInt(transferAmount) * 1e9,
         })
       );
+
       const { blockhash, lastValidBlockHeight } =
-        await connection.getLatestBlockhash();
+        await connection.getLatestBlockhash("confirmed");
 
       tx.feePayer = publicKey;
       tx.recentBlockhash = blockhash;
 
       const signature = await sendTransaction(tx, connection);
-      await connection.confirmTransaction({
-        blockhash,
-        signature,
-        lastValidBlockHeight,
-      });
+      console.log("Transaction Signature:", signature);
+
+      await connection.confirmTransaction(
+        { blockhash, signature, lastValidBlockHeight },
+        "confirmed"
+      );
 
       toast.success(`Transaction completed: ${signature}`);
     } catch (err: any) {
