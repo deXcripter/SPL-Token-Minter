@@ -7,6 +7,7 @@ import {
 } from "@solana/wallet-adapter-react-ui";
 import {
   Connection,
+  LAMPORTS_PER_SOL,
   PublicKey,
   SystemProgram,
   Transaction,
@@ -19,18 +20,20 @@ function Home() {
   const [solBalance, setSolBalance] = useState<number | null>(0);
   const [solBalanceLoading, setSolBalanceLoading] = useState(false);
   const [receipientAddress, setReceipientAddress] = useState<any>("");
-  const [transferAmount, setTransfrAmount] = useState<number>(0);
+  const [transferAmount, setTransfrAmount] = useState<string>("");
   const [sendingTransaction, setSendingTransaction] = useState(false);
 
   const connection = new Connection("https://api.devnet.solana.com");
+
   useEffect(() => {
     setBalance();
-  });
+  }, [connected]);
 
   const setBalance = async () => {
-    if (!publicKey || !receipientAddress) return;
+    console.log(publicKey);
+    if (!publicKey) return;
     const conn = await connection.getBalance(publicKey);
-    setSolBalance(conn / 1000000000);
+    setSolBalance(conn / LAMPORTS_PER_SOL);
   };
 
   const recieveSol = async () => {
@@ -68,7 +71,7 @@ function Home() {
         SystemProgram.transfer({
           fromPubkey: publicKey,
           toPubkey: receipientAddress,
-          lamports: transferAmount * 1e9,
+          lamports: parseInt(transferAmount) * 1e9,
         })
       );
       const { blockhash, lastValidBlockHeight } =
@@ -129,10 +132,10 @@ function Home() {
               className="p-2 rounded-md"
             />
             <input
-              type="number"
+              type="text"
               placeholder="Amount"
               value={transferAmount}
-              onChange={(e) => setTransfrAmount(Number(e.target.value))}
+              onChange={(e) => setTransfrAmount(e.target.value)}
               className="p-2 rounded-md mt-2"
             />
             <button
