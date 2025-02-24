@@ -1,7 +1,20 @@
+"use client";
 import GradientButton from "@/components/GradientButton";
 import SolidButton from "@/components/SolidButton";
+import { clusterApiUrl, Connection } from "@solana/web3.js";
+import { useRouter } from "next/navigation";
 
 function Home() {
+  const router = useRouter();
+
+  const mintNavigate = () => {
+    router.push("/mint");
+  };
+
+  const airdropNavigate = () => {
+    router.push("/airdrop");
+  };
+
   return (
     <div
       style={{
@@ -22,13 +35,20 @@ function Home() {
           your own crypto token in seconds
         </h1>
         <p className="py-6 text-center">
-          Turn your idea into a tradable asset—no code or experience needed.
-          Mint tokens instantly, set up liquidity, and share your creation with
-          communities across social and DeFi platforms.
+          Turn your idea into a tradable asset in seconds. No code needed.
+          Instant liquidity and social sharing.
         </p>
         <div className="flex gap-4 h-14 w-fit mx-auto">
-          <GradientButton text="Start Creating" imagePath="rocket.png" />
-          <SolidButton imagePath="play-btn.png" text="Watch Demo" />
+          <GradientButton
+            text="Start Minting"
+            imagePath="rocket.png"
+            handleClick={mintNavigate}
+          />
+          <SolidButton
+            imagePath="play-btn.png"
+            text="Get Airdrop"
+            handleClick={airdropNavigate}
+          />
         </div>
       </div>
     </div>

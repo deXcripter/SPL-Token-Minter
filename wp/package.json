@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@metaplex-foundation/js": "^0.20.1",
+    "@solana/spl-token": "^0.4.12",
     "@solana/wallet-adapter-base": "^0.9.23",
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/wallet-adapter-react-ui": "^0.9.35",
@@ -16,7 +18,9 @@
     "@solana/web3.js": "^1.98.0",
     "next": "15.1.7",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-spinners": "^0.15.0",
+    "react-toastify": "^11.0.3"
   },
   "devDependencies": {
     "@types/node": "^20",

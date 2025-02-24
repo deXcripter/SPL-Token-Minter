@@ -3,11 +3,13 @@ function SolidButton({
   imagePath,
   height = "58",
   radius = "7",
+  handleClick,
 }: {
   text: string;
   imagePath: string;
   height?: string;
   radius?: string;
+  handleClick?: React.MouseEventHandler<HTMLButtonElement>;
 }) {
   return (
     <button
@@ -17,6 +19,7 @@ function SolidButton({
         borderRadius: `${radius}px`,
         border: "1px solid #374151",
       }}
+      onClick={handleClick}
     >
       <img src={imagePath} alt="" className="w-6 h-6" />
       <span className="text-white">{text}</span>
