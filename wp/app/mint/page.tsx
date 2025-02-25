@@ -2,11 +2,23 @@
 
 import { useState } from "react";
 import GradientButton from "@/components/GradientButton";
-import { clusterApiUrl, Connection } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
+import {
+  clusterApiUrl,
+  Connection,
+  Keypair,
+  LAMPORTS_PER_SOL,
+  SystemProgram,
+  Transaction,
+} from "@solana/web3.js";
+import { getMinimumBalanceForRentExemptAccount } from "@solana/spl-token";
+import * as token from "@solana/spl-token";
+import { toast } from "react-toastify";
 
 function Page() {
   const [loading, setLoading] = useState(false);
+  const [mintSignature, setMintSignature] = useState("");
+  const [mintAddress, setMintAddress] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     ticker: "",
@@ -15,7 +27,85 @@ function Page() {
   });
 
   const connection = new Connection(clusterApiUrl("devnet"));
-  const { connected, publicKey } = useWallet();
+  const { connected, publicKey, sendTransaction } = useWallet();
+
+  const connectionErr = () => {
+    if (!connected) {
+      toast.error("Please connect your wallet");
+      return true;
+    }
+    return false;
+  };
+
+  const createMint = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    if (connectionErr()) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const tokenMint = Keypair.generate();
+      const lamports = await token.getMinimumBalanceForRentExemptAccount(
+        connection
+      );
+      const transaction = new Transaction().add(
+        SystemProgram.createAccount({
+          fromPubkey: publicKey!,
+          newAccountPubkey: tokenMint.publicKey,
+          space: token.MINT_SIZE,
+          lamports,
+          programId: token.TOKEN_PROGRAM_ID,
+        }),
+        token.createInitializeMintInstruction(
+          tokenMint.publicKey,
+          6,
+          publicKey!,
+          null,
+          token.TOKEN_PROGRAM_ID
+        )
+      );
+
+      const signature = await sendTransaction(transaction, connection, {
+        signers: [tokenMint],
+      });
+
+      setMintAddress(tokenMint.publicKey.toBase58());
+      setMintSignature(signature);
+
+      console.log(signature, transaction);
+
+      toast.done("Token minted successfully");
+    } catch (error) {
+    } finally {
+      setLoading(false);
+    }
+
+    //
+  };
+
+  const createTokenAcct = async () => {
+    const lamports = await getMinimumBalanceForRentExemptAccount(connection);
+    const account = Keypair.generate();
+    const space = token.MINT_SIZE;
+
+    const transaction = new Transaction().add(
+      SystemProgram.createAccount({
+        fromPubkey: publicKey!,
+        newAccountPubkey: account.publicKey,
+        space,
+        lamports,
+        programId: token.TOKEN_PROGRAM_ID,
+      }),
+      token.createInitializeAccountInstruction(
+        account.publicKey,
+        mintAddress,
+        publicKey!,
+        token.TOKEN_PROGRAM_ID
+      )
+    );
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -41,7 +131,8 @@ function Page() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission here
+    createMint(e);
+    // TODO : Handle form submission here
     console.log("Form Data:", formData);
   };
 

@@ -1,73 +1,21 @@
 "use client";
 
-import { getMinimumBalanceForRentExemptAccount } from "@solana/spl-token";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import {
   WalletDisconnectButton,
-  WalletModal,
   WalletMultiButton,
 } from "@solana/wallet-adapter-react-ui";
-import {
-  clusterApiUrl,
-  Connection,
-  Keypair,
-  LAMPORTS_PER_SOL,
-  SystemProgram,
-  Transaction,
-} from "@solana/web3.js";
-import * as token from "@solana/spl-token";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { useEffect, useState } from "react";
-import { toast } from "react-toastify";
 
 function NavBar() {
-  // const connection = new Connection(clusterApiUrl("devnet"));
-  const { publicKey, sendTransaction, connected } = useWallet();
+  const { publicKey, connected } = useWallet();
   const { connection } = useConnection();
   const [solBalance, setSolBalance] = useState(0);
 
   useEffect(() => {
     setBalance();
   }, [connected]);
-
-  const connetionErr = () => {
-    if (!connection || !publicKey) return true;
-    toast.error("Please connect your wallet");
-    return false;
-  };
-
-  const createMint = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (connetionErr()) return;
-
-    try {
-      const tokenMint = Keypair.generate();
-      const lamports = await token.getMinimumBalanceForRentExemptAccount(
-        connection
-      );
-      const transaction = new Transaction().add(
-        SystemProgram.createAccount({
-          fromPubkey: publicKey!,
-          newAccountPubkey: tokenMint.publicKey,
-          space: token.MINT_SIZE,
-          lamports,
-          programId: token.TOKEN_PROGRAM_ID,
-        }),
-        token.createInitializeMintInstruction(
-          tokenMint.publicKey,
-          6,
-          publicKey!,
-          null,
-          token.TOKEN_PROGRAM_ID
-        )
-      );
-
-      const signature = await sendTransaction(transaction, connection, {
-        signers: [tokenMint],
-      });
-    } catch (error) {}
-
-    //
-  };
 
   const setBalance = async () => {
     if (!publicKey) return;
