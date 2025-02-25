@@ -37,7 +37,6 @@ const uploadImage = (req, folder) => __awaiter(void 0, void 0, void 0, function*
     catch (error) {
         yield promises_1.default.unlink(path);
         throw new app_error_1.default(`Image upload failed: ${error}`, 400);
-        // throw new AppError(`Image upload failed: ${error.message}`, 400);
     }
 });
 exports.uploadImage = uploadImage;

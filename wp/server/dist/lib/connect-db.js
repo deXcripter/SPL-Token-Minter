@@ -15,11 +15,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importDefault(require("mongoose"));
 const connectDB = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const conn = yield mongoose_1.default.connect(process.env.MONGOOSE_URI);
+        const conn = yield mongoose_1.default.connect(process.env.MONGO_URI);
         console.log(`DB connected: ${conn.connection.host}`);
     }
     catch (ex) {
-        console.log(`Error connecting DB: {url: ${process.env.MONGOOSE_URI}}`);
+        console.log(`Error connecting DB: {url: ${process.env.MONGO_URI}}`);
         process.exit(0);
     }
 });

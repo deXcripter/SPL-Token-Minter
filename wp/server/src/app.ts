@@ -2,7 +2,7 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import cors from "cors";
-import nftRoutes from "./routes/nft.routes";
+import tokenRoutes from "./routes/token.routes";
 import globalErrorHandler from "./errors";
 import { notFound } from "./misc/404-route";
 
@@ -20,7 +20,7 @@ app.use(
 app.use(cookieParser());
 
 // rotues
-app.use("/api/nft", nftRoutes);
+app.use("/api/token", tokenRoutes);
 app.use("*", notFound);
 app.use(globalErrorHandler);
 

@@ -1,5 +1,5 @@
 {
-  "name": "nft-minting-server",
+  "name": "token-minting-server",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -7,9 +7,8 @@
     "dev": "nodemon src/index.ts"
   },
   "keywords": [
-    "nft",
-    "minting",
-    "erc721"
+    "token",
+    "minting"
   ],
   "author": "Johnpaul Nnaji",
   "license": "ISC",

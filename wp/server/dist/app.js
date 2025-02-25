@@ -7,7 +7,7 @@ const express_1 = __importDefault(require("express"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const morgan_1 = __importDefault(require("morgan"));
 const cors_1 = __importDefault(require("cors"));
-const nft_routes_1 = __importDefault(require("./routes/nft.routes"));
+const token_routes_1 = __importDefault(require("./routes/token.routes"));
 const errors_1 = __importDefault(require("./errors"));
 const _404_route_1 = require("./misc/404-route");
 const app = (0, express_1.default)();
@@ -20,7 +20,7 @@ app.use((0, cors_1.default)({
 }));
 app.use((0, cookie_parser_1.default)());
 // rotues
-app.use("/api/nft", nft_routes_1.default);
+app.use("/api/token", token_routes_1.default);
 app.use("*", _404_route_1.notFound);
 app.use(errors_1.default);
 exports.default = app;
