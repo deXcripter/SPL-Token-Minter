@@ -7,14 +7,14 @@ import {
   clusterApiUrl,
   Connection,
   Keypair,
-  LAMPORTS_PER_SOL,
   PublicKey,
   SystemProgram,
   Transaction,
 } from "@solana/web3.js";
-import { getMinimumBalanceForRentExemptAccount } from "@solana/spl-token";
+import { createCreateMetadataAccountV3Instruction } from "@metaplex-foundation/mpl-token-metadata";
 import * as token from "@solana/spl-token";
 import { toast } from "react-toastify";
+import SolidButton from "@/components/SolidButton";
 
 function Page() {
   const [loading, setLoading] = useState(false);
@@ -23,6 +23,7 @@ function Page() {
   const [accTx, setAccTx] = useState("");
   const [mintTokenTxSignature, setMintTokenTxSignature] = useState("");
   const [accAddr, setAccAddr] = useState<PublicKey | null>(null);
+  const [justMinted, setJustMinted] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     ticker: "",
@@ -31,7 +32,7 @@ function Page() {
   });
 
   const connection = new Connection(clusterApiUrl("devnet"));
-  const { connected, publicKey, sendTransaction } = useWallet();
+  const { connected, publicKey, sendTransaction, wallet } = useWallet();
 
   const connectionErr = () => {
     if (!connected) {
@@ -39,6 +40,63 @@ function Page() {
       return true;
     }
     return false;
+  };
+
+  const setTokenMetadata = async (
+    mintAddr: PublicKey,
+    data: { imageLink: string }
+  ) => {
+    if (!wallet) return toast.error("Wallet not connected");
+
+    try {
+      const metadataProgramId = new PublicKey(
+        "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
+      );
+      const metadataPDA = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("metadata"),
+          metadataProgramId.toBuffer(),
+          mintAddr.toBuffer(),
+        ],
+        metadataProgramId
+      )[0];
+
+      const transaction = new Transaction().add(
+        createCreateMetadataAccountV3Instruction(
+          {
+            metadata: metadataPDA,
+            mint: mintAddr,
+            mintAuthority: publicKey!,
+            payer: publicKey!,
+            updateAuthority: publicKey!,
+          },
+          {
+            createMetadataAccountArgsV3: {
+              data: {
+                name: formData.name,
+                symbol: formData.ticker,
+                uri: "https://example.com/default-metadata.json",
+                sellerFeeBasisPoints: 0,
+                creators: null,
+                collection: null,
+                uses: null,
+              },
+              isMutable: true,
+              collectionDetails: null,
+            },
+          }
+        )
+      );
+
+      transaction.feePayer = publicKey!;
+      const signature = await sendTransaction(transaction, connection);
+      await connection.confirmTransaction(signature, "confirmed");
+      toast.success("Token metadata set successfully!");
+      setJustMinted(true);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to set token metadata");
+    }
   };
 
   const createMint = async () => {
@@ -168,12 +226,23 @@ function Page() {
       const signature = await sendTransaction(transaction, connection);
 
       await connection.confirmTransaction(signature);
+      await setTokenMetadata(mintAddr, { imageLink: formData.image });
       toast.success("Token minted successfully");
       setMintTokenTxSignature(signature);
     } catch (err) {
       console.error(err);
       toast.error("Error minting token");
     }
+  };
+
+  const handleNewMint = () => {
+    setJustMinted(false);
+    setFormData({
+      name: "",
+      ticker: "",
+      maxSupply: "",
+      image: "",
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -213,99 +282,174 @@ function Page() {
       className="py-5"
     >
       {/* Form Section */}
-      <form
-        className="mt-10 w-full max-w-2xl px-10 py-12 rounded-2xl shadow-lg border border-[#1F2937] text-[#9CA3AF]"
-        style={{
-          backgroundColor: "rgba(17, 24, 39, 0.5)",
-        }}
-        onSubmit={handleSubmit}
-      >
-        <h2 className="text-white text-2xl font-bold mb-6">Create New Token</h2>
+      {!justMinted ? (
+        <form
+          className="mt-10 w-full max-w-2xl px-10 py-12 rounded-2xl shadow-lg border border-[#1F2937] text-[#9CA3AF]"
+          style={{
+            backgroundColor: "rgba(17, 24, 39, 0.5)",
+          }}
+          onSubmit={handleSubmit}
+        >
+          <h2 className="text-white text-2xl font-bold mb-6">
+            Create New Token
+          </h2>
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Token Name</label>
-          <input
-            type="text"
-            name="name"
-            placeholder="Enter token name (e.g. My Awesome Token)"
-            className="w-full p-2 bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={formData.name}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Token Name</label>
+            <input
+              type="text"
+              name="name"
+              placeholder="Enter token name (e.g. My Awesome Token)"
+              className="w-full p-2 bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={formData.name}
+              onChange={handleInputChange}
+              required
+            />
+          </div>
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">
-            Ticker Symbol
-          </label>
-          <input
-            type="text"
-            name="ticker"
-            placeholder="Enter ticker (e.g. MAWS)"
-            className="w-full p-2 bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            maxLength={5}
-            value={formData.ticker}
-            onChange={handleInputChange}
-            required
-          />
-          <p className="text-xs mt-1 text-gray-400">Max 5 characters</p>
-        </div>
-
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Max Supply</label>
-          <input
-            type="number"
-            name="maxSupply"
-            placeholder="Enter total supply (e.g. 1000000)"
-            className="w-full p-2 bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            min="1"
-            value={formData.maxSupply}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
-
-        <div className="mb-6">
-          <label className="block text-sm font-medium mb-2">Token Image</label>
-          <div className="flex items-center gap-4">
-            <label className="cursor-pointer">
-              <span className="sr-only">Choose token logo</span>
-              <input
-                type="file"
-                className="hidden"
-                accept="image/*"
-                onChange={handleImageUpload}
-              />
-              <div className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 transition-colors">
-                Upload Image
-              </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">
+              Ticker Symbol
             </label>
-            {formData.image && (
-              <img
-                src={formData.image}
-                alt="Token preview"
-                className="w-12 h-12 rounded-full object-cover"
+            <input
+              type="text"
+              name="ticker"
+              placeholder="Enter ticker (e.g. MAWS)"
+              className="w-full p-2 bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              maxLength={5}
+              value={formData.ticker}
+              onChange={handleInputChange}
+              required
+            />
+            <p className="text-xs mt-1 text-gray-400">Max 5 characters</p>
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Max Supply</label>
+            <input
+              type="number"
+              name="maxSupply"
+              placeholder="Enter total supply (e.g. 1000000)"
+              className="w-full p-2 bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              min="1"
+              value={formData.maxSupply}
+              onChange={handleInputChange}
+              required
+            />
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">
+              Token Image
+            </label>
+            <div className="flex items-center gap-4">
+              <label className="cursor-pointer">
+                <span className="sr-only">Choose token logo</span>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                />
+                <div className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 transition-colors">
+                  Upload Image
+                </div>
+              </label>
+              {formData.image && (
+                <img
+                  src={formData.image}
+                  alt="Token preview"
+                  className="w-12 h-12 rounded-full object-cover"
+                />
+              )}
+            </div>
+            <p className="text-xs mt-1 text-gray-400">
+              Recommended size: 256x256px
+            </p>
+          </div>
+
+          <div className="w-full h-[3rem] text-white flex">
+            {!loading ? (
+              <GradientButton
+                imagePath="Vector.png"
+                text="Create Token"
+                height="58"
               />
+            ) : (
+              "Loading"
             )}
           </div>
-          <p className="text-xs mt-1 text-gray-400">
-            Recommended size: 256x256px
-          </p>
-        </div>
-
-        <div className="w-full h-[3rem] text-white flex">
-          {!loading ? (
-            <GradientButton
-              imagePath="Vector.png"
-              text="Create Token"
-              height="58"
+        </form>
+      ) : (
+        <div
+          className="mt-10 w-[40%] max-w-2xl py-10 rounded-2xl shadow-lg border border-[#1F2937] text-[#9CA3AF]"
+          style={{
+            backgroundColor: "rgba(17, 24, 39, 0.5)",
+            border: "1px solid #10b981",
+          }}
+        >
+          <div className="text-center flex flex-col justify-center gap-4">
+            <img
+              src="div.png"
+              alt={formData.name}
+              className="h-25 w-25 mx-auto"
             />
-          ) : (
-            "Loading"
-          )}
+            <h2 className="text-[#10B981] font-bold text-3xl">
+              Token Minted Sucessfully
+            </h2>
+            <p>Your token has been created and added to your collection</p>
+          </div>
+          {/* card */}
+          <div className="bg-[#1F2937] rounded-xl overflow-hidden my-8 w-[90%] m-auto">
+            {/* <div>
+              <img
+                src={formData.image}
+                alt={`${formData.name} image`}
+                style={{
+                  width: "100%",
+                  height: "220px",
+                  objectFit: "cover",
+                }}
+              />
+            </div> */}
+            <div className="flex flex-col gap-1 p-2 px-8">
+              <div className="flex gap-5 justify-between">
+                <p className="text-2xl">Token Name: </p>
+                <p className="text-2xl text-green-600">{formData.name}</p>
+              </div>
+              <div className="flex gap-5 justify-between">
+                <p className="text-2xl">Token Symbol</p>
+                <p className="text-2xl text-green-600">{formData.ticker}</p>
+              </div>
+              <div className="flex gap-5 justify-between">
+                <span className="text-2xl"> Supply </span>
+                <span className="text-2xl text-green-600">
+                  {formData.maxSupply}
+                </span>
+              </div>
+              <div className="flex gap-5 justify-between">
+                <p className="text-2xl">Token Address</p>
+                <a
+                  href={`https://explorer.solana.com/address/${accAddr!.toBase58()}?cluster=devnet`}
+                  className="text-xl text-green-600"
+                  target="_blank"
+                >
+                  Click to view in explorer
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex h-14 gap-6 text-white w-[90%] m-auto">
+            <SolidButton imagePath="share.png" text="Share" />
+            <GradientButton
+              text="Mint Another"
+              imagePath="Vector.png"
+              handleClick={handleNewMint}
+            />
+          </div>
         </div>
-      </form>
+      )}
     </div>
   );
 }
