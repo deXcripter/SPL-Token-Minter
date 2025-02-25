@@ -24,11 +24,7 @@ export const Wallet = ({ children }: { children: React.ReactNode }) => {
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>
-          {/* <WalletMultiButton />
-                    <WalletDisconnectButton /> */}
-          {children}
-        </WalletModalProvider>
+        <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
   );
