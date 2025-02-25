@@ -42,7 +42,6 @@ function Page() {
   };
 
   const createMint = async () => {
-    setLoading(true);
     if (connectionErr()) {
       setLoading(false);
       return;
@@ -78,17 +77,14 @@ function Page() {
 
       toast.done("Token minted successfully");
       setMintAddress(new PublicKey(tokenMint.publicKey.toBase58()));
-      createTokenAccount(new PublicKey(tokenMint.publicKey.toBase58()));
       console.log(
         `Setting the mint address to ${new PublicKey(
           tokenMint.publicKey.toBase58()
         )}`
       );
       setMintSignature(signature);
-    } catch (error) {
-    } finally {
-      setLoading(false);
-    }
+      await createTokenAccount(new PublicKey(tokenMint.publicKey.toBase58()));
+    } catch (error) {}
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,8 +112,6 @@ function Page() {
   const createTokenAccount = async (mintAddr: PublicKey) => {
     if (connectionErr()) return toast.error("Please connect your wallet");
     if (!mintAddr) throw new Error("No Mint Address");
-
-    setLoading(true);
 
     try {
       const account = Keypair.generate();
@@ -147,46 +141,38 @@ function Page() {
       await connection.confirmTransaction(signature);
       setAccTx(signature);
       setAccAddr(account.publicKey);
-      mintToken(mintAddr, account.publicKey);
+      await mintToken(mintAddr, account.publicKey);
       console.log(`Setting the account address to ${account.publicKey}`);
     } catch (err) {
       console.error(err);
       toast.error("Error creating token account");
-    } finally {
-      setLoading(false);
     }
   };
 
   const mintToken = async (mintAddr: PublicKey, accAddr: PublicKey) => {
     if (connectionErr()) return;
 
-    console.log(parseInt(formData.maxSupply) * 10 ** 6);
-
     if (!publicKey) return toast.error("No public key found");
 
-    const acct = Keypair.generate();
-
     try {
-      const transaction = new Transaction();
-      const tokenTx = token.createMintToInstruction(
-        mintAddr,
-        accAddr,
-        publicKey,
-        parseInt(formData.maxSupply) * 10 ** 6,
-        [acct]
+      const transaction = new Transaction().add(
+        token.createMintToInstruction(
+          mintAddr,
+          accAddr,
+          publicKey,
+          parseInt(formData.maxSupply) * 10 ** 6
+        )
       );
-      transaction.add(tokenTx);
+
       transaction.feePayer = publicKey;
-      const { blockhash } = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
       const signature = await sendTransaction(transaction, connection);
+
+      await connection.confirmTransaction(signature);
+      toast.success("Token minted successfully");
       setMintTokenTxSignature(signature);
-      toast.done("Token minted successfully");
     } catch (err) {
       console.error(err);
       toast.error("Error minting token");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -202,11 +188,15 @@ function Page() {
       return toast.error("Please fill all fields");
     }
 
-    await createMint();
-    // await createTokenAccount();
-    // await mintToken();
-    // TODO : Handle form submission to be here
-    console.log("Form Data:", formData);
+    try {
+      setLoading(true);
+      await createMint();
+      // TODO : Handle form submission to be here
+      console.log("Form Data:", formData);
+    } catch (err) {
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
