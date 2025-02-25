@@ -1,7 +1,6 @@
 "use client";
 import GradientButton from "@/components/GradientButton";
 import SolidButton from "@/components/SolidButton";
-import { clusterApiUrl, Connection } from "@solana/web3.js";
 import { useRouter } from "next/navigation";
 
 function Home() {

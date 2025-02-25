@@ -8,6 +8,7 @@ import {
   Connection,
   Keypair,
   LAMPORTS_PER_SOL,
+  PublicKey,
   SystemProgram,
   Transaction,
 } from "@solana/web3.js";
@@ -18,7 +19,10 @@ import { toast } from "react-toastify";
 function Page() {
   const [loading, setLoading] = useState(false);
   const [mintSignature, setMintSignature] = useState("");
-  const [mintAddress, setMintAddress] = useState("");
+  const [mintAddress, setMintAddress] = useState<PublicKey | null>(null);
+  const [accTx, setAccTx] = useState("");
+  const [mintTokenTxSignature, setMintTokenTxSignature] = useState("");
+  const [accAddr, setAccAddr] = useState<PublicKey | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     ticker: "",
@@ -37,8 +41,7 @@ function Page() {
     return false;
   };
 
-  const createMint = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const createMint = async () => {
     setLoading(true);
     if (connectionErr()) {
       setLoading(false);
@@ -71,40 +74,21 @@ function Page() {
         signers: [tokenMint],
       });
 
-      setMintAddress(tokenMint.publicKey.toBase58());
-      setMintSignature(signature);
-
-      console.log(signature, transaction);
+      await connection.confirmTransaction(signature);
 
       toast.done("Token minted successfully");
+      setMintAddress(new PublicKey(tokenMint.publicKey.toBase58()));
+      createTokenAccount(new PublicKey(tokenMint.publicKey.toBase58()));
+      console.log(
+        `Setting the mint address to ${new PublicKey(
+          tokenMint.publicKey.toBase58()
+        )}`
+      );
+      setMintSignature(signature);
     } catch (error) {
     } finally {
       setLoading(false);
     }
-
-    //
-  };
-
-  const createTokenAcct = async () => {
-    const lamports = await getMinimumBalanceForRentExemptAccount(connection);
-    const account = Keypair.generate();
-    const space = token.MINT_SIZE;
-
-    const transaction = new Transaction().add(
-      SystemProgram.createAccount({
-        fromPubkey: publicKey!,
-        newAccountPubkey: account.publicKey,
-        space,
-        lamports,
-        programId: token.TOKEN_PROGRAM_ID,
-      }),
-      token.createInitializeAccountInstruction(
-        account.publicKey,
-        mintAddress,
-        publicKey!,
-        token.TOKEN_PROGRAM_ID
-      )
-    );
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,10 +113,99 @@ function Page() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const createTokenAccount = async (mintAddr: PublicKey) => {
+    if (connectionErr()) return toast.error("Please connect your wallet");
+    if (!mintAddr) throw new Error("No Mint Address");
+
+    setLoading(true);
+
+    try {
+      const account = Keypair.generate();
+      const space = token.ACCOUNT_SIZE;
+      const lamports = await token.getMinimumBalanceForRentExemptAccount(
+        connection
+      );
+      const transaction = new Transaction().add(
+        SystemProgram.createAccount({
+          fromPubkey: publicKey!,
+          newAccountPubkey: account.publicKey,
+          space,
+          lamports,
+          programId: token.TOKEN_PROGRAM_ID,
+        }),
+        token.createInitializeAccountInstruction(
+          account.publicKey,
+          mintAddr,
+          publicKey!,
+          token.TOKEN_PROGRAM_ID
+        )
+      );
+
+      const signature = await sendTransaction(transaction, connection, {
+        signers: [account],
+      });
+      await connection.confirmTransaction(signature);
+      setAccTx(signature);
+      setAccAddr(account.publicKey);
+      mintToken(mintAddr, account.publicKey);
+      console.log(`Setting the account address to ${account.publicKey}`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Error creating token account");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const mintToken = async (mintAddr: PublicKey, accAddr: PublicKey) => {
+    if (connectionErr()) return;
+
+    console.log(parseInt(formData.maxSupply) * 10 ** 6);
+
+    if (!publicKey) return toast.error("No public key found");
+
+    const acct = Keypair.generate();
+
+    try {
+      const transaction = new Transaction();
+      const tokenTx = token.createMintToInstruction(
+        mintAddr,
+        accAddr,
+        publicKey,
+        parseInt(formData.maxSupply) * 10 ** 6,
+        [acct]
+      );
+      transaction.add(tokenTx);
+      transaction.feePayer = publicKey;
+      const { blockhash } = await connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      const signature = await sendTransaction(transaction, connection);
+      setMintTokenTxSignature(signature);
+      toast.done("Token minted successfully");
+    } catch (err) {
+      console.error(err);
+      toast.error("Error minting token");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    createMint(e);
-    // TODO : Handle form submission here
+
+    if (
+      !formData.image ||
+      !formData.maxSupply ||
+      !formData.name ||
+      !formData.ticker
+    ) {
+      return toast.error("Please fill all fields");
+    }
+
+    await createMint();
+    // await createTokenAccount();
+    // await mintToken();
+    // TODO : Handle form submission to be here
     console.log("Form Data:", formData);
   };
 

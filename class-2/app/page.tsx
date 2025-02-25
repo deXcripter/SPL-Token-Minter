@@ -23,9 +23,6 @@ function Home() {
   const [receipientAddress, setReceipientAddress] = useState<string>("");
   const [transferAmount, setTransfrAmount] = useState<string>("");
   const [sendingTransaction, setSendingTransaction] = useState(false);
-  // const user2Addr = new PublicKey(
-  //   "E2D9a6ENW2nejH4A3stmqEnqFkfWiZk2m1aFRhFM1tiQ"
-  // );
 
   const connection = new Connection("https://api.devnet.solana.com");
 
