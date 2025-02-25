@@ -15,6 +15,7 @@ import { createCreateMetadataAccountV3Instruction } from "@metaplex-foundation/m
 import * as token from "@solana/spl-token";
 import { toast } from "react-toastify";
 import SolidButton from "@/components/SolidButton";
+import axiosInstance from "@/lib/axios";
 
 function Page() {
   const [loading, setLoading] = useState(false);
@@ -24,11 +25,17 @@ function Page() {
   const [mintTokenTxSignature, setMintTokenTxSignature] = useState("");
   const [accAddr, setAccAddr] = useState<PublicKey | null>(null);
   const [justMinted, setJustMinted] = useState(false);
-  const [formData, setFormData] = useState({
+  const [preview, setPreview] = useState<string | null>(null);
+  const [formData, setFormData] = useState<{
+    name: string;
+    ticker: string;
+    maxSupply: string;
+    image: File | null;
+  }>({
     name: "",
     ticker: "",
     maxSupply: "",
-    image: "",
+    image: null,
   });
 
   const connection = new Connection(clusterApiUrl("devnet"));
@@ -75,7 +82,8 @@ function Page() {
               data: {
                 name: formData.name,
                 symbol: formData.ticker,
-                uri: "https://example.com/default-metadata.json",
+                uri:
+                  data.imageLink || "https://example.com/default-metadata.json",
                 sellerFeeBasisPoints: 0,
                 creators: null,
                 collection: null,
@@ -155,14 +163,12 @@ function Page() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setFormData((prev) => ({
-          ...prev,
-          image: event.target?.result as string,
-        }));
-      };
-      reader.readAsDataURL(file);
+      const imageUrl = URL.createObjectURL(file);
+      setPreview(imageUrl);
+      setFormData((prev) => ({
+        ...prev,
+        image: file,
+      }));
     }
   };
 
@@ -223,9 +229,19 @@ function Page() {
 
       transaction.feePayer = publicKey;
       const signature = await sendTransaction(transaction, connection);
-
       await connection.confirmTransaction(signature);
-      await setTokenMetadata(mintAddr, { imageLink: formData.image });
+
+      const data = new FormData();
+      data.append("name", formData.name);
+      data.append("ticker", formData.ticker);
+      data.append("maxSupply", formData.maxSupply);
+      if (formData.image) data.append("image", formData.image);
+      data.append("address", publicKey!.toBase58());
+
+      const res = await axiosInstance.post("/", data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      await setTokenMetadata(mintAddr, { imageLink: res.data.data.imageUrl });
       toast.success("Token minted successfully");
       setMintTokenTxSignature(signature);
     } catch (err) {
@@ -240,7 +256,7 @@ function Page() {
       name: "",
       ticker: "",
       maxSupply: "",
-      image: "",
+      image: null,
     });
   };
 
@@ -259,7 +275,6 @@ function Page() {
     try {
       setLoading(true);
       await createMint();
-      // TODO : Handle form submission to be here
       console.log("Form Data:", formData);
     } catch (err) {
     } finally {
@@ -356,7 +371,7 @@ function Page() {
               </label>
               {formData.image && (
                 <img
-                  src={formData.image}
+                  src={preview || ""}
                   alt="Token preview"
                   className="w-12 h-12 rounded-full object-cover"
                 />
@@ -413,7 +428,7 @@ function Page() {
             </div> */}
             <div className="flex flex-col gap-1 p-2 px-8">
               <div className="flex gap-5 justify-between">
-                <p className="text-2xl">Token Name: </p>
+                <p className="text-2xl">Token Name</p>
                 <p className="text-2xl text-green-600">{formData.name}</p>
               </div>
               <div className="flex gap-5 justify-between">
