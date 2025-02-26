@@ -210,8 +210,8 @@ function Page() {
       await connection.confirmTransaction(signature);
       setAccTx(signature);
       setAccAddr(account.publicKey);
-      await mintToken(mintAddr, account.publicKey);
       console.log(`Setting the account address to ${account.publicKey}`);
+      await mintToken(mintAddr, account.publicKey);
     } catch (err) {
       console.error(err);
       toast.error("Error creating token account");
@@ -243,6 +243,7 @@ function Page() {
       data.append("maxSupply", formData.maxSupply);
       if (formData.image) data.append("image", formData.image);
       data.append("address", publicKey!.toBase58());
+      data.append("mintAddress", accAddr.toBase58());
 
       const res = await axiosInstance.post("/", data, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -463,7 +464,7 @@ function Page() {
           <div className="flex h-14 gap-6 text-white w-[90%] m-auto">
             <SolidButton
               imagePath="share.png"
-              text="Share"
+              text="View in collection"
               handleClick={handleCollectionNav}
             />
             <GradientButton
