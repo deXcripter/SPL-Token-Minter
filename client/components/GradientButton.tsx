@@ -4,11 +4,13 @@ function GradientButton({
   height = "58",
   radius = "7",
   handleClick,
+  isDisabled,
 }: {
   text: string;
   imagePath: string;
   height?: string;
   radius?: string;
+  isDisabled?: boolean;
   handleClick?: React.MouseEventHandler<HTMLButtonElement>;
 }) {
   return (
@@ -19,6 +21,7 @@ function GradientButton({
         borderRadius: `${radius}px`,
       }}
       onClick={handleClick}
+      disabled={isDisabled}
     >
       <img src={imagePath} alt="" />
       <span>{text}</span>

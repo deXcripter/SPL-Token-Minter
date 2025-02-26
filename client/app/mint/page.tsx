@@ -17,9 +17,11 @@ import { toast } from "react-toastify";
 import SolidButton from "@/components/SolidButton";
 import axiosInstance from "@/lib/axios";
 import { useRouter } from "next/navigation";
+import { BeatLoader } from "react-spinners";
 
 function Page() {
   const [loading, setLoading] = useState(false);
+  const [currentStep, setCurrentStep] = useState<string | null>(null);
   const router = useRouter();
   const [mintSignature, setMintSignature] = useState("");
   const [mintAddress, setMintAddress] = useState<PublicKey | null>(null);
@@ -46,6 +48,7 @@ function Page() {
   const connectionErr = () => {
     if (!connected) {
       toast.error("Please connect your wallet");
+      setCurrentStep(null);
       return true;
     }
     return false;
@@ -58,6 +61,7 @@ function Page() {
     if (!wallet) return toast.error("Wallet not connected");
 
     try {
+      setCurrentStep("Setting token metadata...");
       const metadataProgramId = new PublicKey(
         "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
       );
@@ -105,6 +109,8 @@ function Page() {
     } catch (err) {
       console.error(err);
       toast.error("Failed to set token metadata");
+    } finally {
+      setCurrentStep(null);
     }
   };
 
@@ -115,6 +121,7 @@ function Page() {
     }
 
     try {
+      setCurrentStep("Creating mint account...");
       const tokenMint = Keypair.generate();
       const lamports = await token.getMinimumBalanceForRentExemptAccount(
         connection
@@ -144,14 +151,11 @@ function Page() {
 
       toast.done("Token minted successfully");
       setMintAddress(new PublicKey(tokenMint.publicKey.toBase58()));
-      console.log(
-        `Setting the mint address to ${new PublicKey(
-          tokenMint.publicKey.toBase58()
-        )}`
-      );
       setMintSignature(signature);
       await createTokenAccount(new PublicKey(tokenMint.publicKey.toBase58()));
-    } catch (error) {}
+    } catch (error) {
+      setCurrentStep(null);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -183,6 +187,7 @@ function Page() {
     if (!mintAddr) throw new Error("No Mint Address");
 
     try {
+      setCurrentStep("Creating token account...");
       const account = Keypair.generate();
       const space = token.ACCOUNT_SIZE;
       const lamports = await token.getMinimumBalanceForRentExemptAccount(
@@ -210,20 +215,20 @@ function Page() {
       await connection.confirmTransaction(signature);
       setAccTx(signature);
       setAccAddr(account.publicKey);
-      console.log(`Setting the account address to ${account.publicKey}`);
       await mintToken(mintAddr, account.publicKey);
     } catch (err) {
       console.error(err);
       toast.error("Error creating token account");
+      setCurrentStep(null);
     }
   };
 
   const mintToken = async (mintAddr: PublicKey, accAddr: PublicKey) => {
     if (connectionErr()) return;
-
     if (!publicKey) return toast.error("No public key found");
 
     try {
+      setCurrentStep("Minting tokens...");
       const transaction = new Transaction().add(
         token.createMintToInstruction(
           mintAddr,
@@ -245,6 +250,7 @@ function Page() {
       data.append("address", publicKey!.toBase58());
       data.append("mintAddress", accAddr.toBase58());
 
+      setCurrentStep("Uploading metadata...");
       const res = await axiosInstance.post("/", data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -254,6 +260,8 @@ function Page() {
     } catch (err) {
       console.error(err);
       toast.error("Error minting token");
+    } finally {
+      setCurrentStep(null);
     }
   };
 
@@ -282,12 +290,21 @@ function Page() {
     try {
       setLoading(true);
       await createMint();
-      console.log("Form Data:", formData);
     } catch (err) {
+      setCurrentStep(null);
     } finally {
       setLoading(false);
     }
   };
+
+  const LoadingOverlay = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center">
+      <div className="bg-gray-800 p-8 rounded-lg flex flex-col items-center space-y-4">
+        <BeatLoader color="#10B981" size={15} />
+        <p className="text-emerald-400 text-lg font-medium">{currentStep}</p>
+      </div>
+    </div>
+  );
 
   return (
     <div
@@ -302,7 +319,8 @@ function Page() {
       }}
       className="py-5"
     >
-      {/* Form Section */}
+      {currentStep && <LoadingOverlay />}
+
       {!justMinted ? (
         <form
           className="mt-10 w-full max-w-2xl px-10 py-12 rounded-2xl shadow-lg border border-[#1F2937] text-[#9CA3AF]"
@@ -390,15 +408,12 @@ function Page() {
           </div>
 
           <div className="w-full h-[3rem] text-white flex">
-            {!loading ? (
-              <GradientButton
-                imagePath="Vector.png"
-                text="Create Token"
-                height="58"
-              />
-            ) : (
-              "Loading"
-            )}
+            <GradientButton
+              imagePath="Vector.png"
+              text="Create Token"
+              height="58"
+              isDisabled={!!currentStep}
+            />
           </div>
         </form>
       ) : (
@@ -420,19 +435,7 @@ function Page() {
             </h2>
             <p>Your token has been created and added to your collection</p>
           </div>
-          {/* card */}
           <div className="bg-[#1F2937] rounded-xl overflow-hidden my-8 w-[90%] m-auto">
-            {/* <div>
-              <img
-                src={formData.image}
-                alt={`${formData.name} image`}
-                style={{
-                  width: "100%",
-                  height: "220px",
-                  objectFit: "cover",
-                }}
-              />
-            </div> */}
             <div className="flex flex-col gap-1 p-2 px-8">
               <div className="flex gap-5 justify-between">
                 <p className="text-2xl">Token Name</p>
