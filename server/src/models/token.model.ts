@@ -23,6 +23,11 @@ const tokenSchema = new mongoose.Schema<Itoken>(
       required: true,
     },
 
+    mintAddress: {
+      type: String,
+      required: true,
+    },
+
     ticker: {
       type: String,
       required: true,

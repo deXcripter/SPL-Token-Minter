@@ -12,14 +12,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getWallettokens = exports.gettoken = exports.mintToken = void 0;
+exports.getWallettokens = exports.getToken = exports.mintToken = void 0;
 const app_error_1 = __importDefault(require("../lib/app-error"));
 const async_handler_1 = __importDefault(require("../lib/async-handler"));
 const token_model_1 = __importDefault(require("../models/token.model"));
 const image_handler_1 = require("../lib/image-handler");
 const FOLDER = "token";
 exports.mintToken = (0, async_handler_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const { name, ticker, maxSupply, address } = req.body;
+    const { name, ticker, maxSupply, address, mintAddress } = req.body;
     if (!req.file)
         return next(new app_error_1.default("Please upload an image", 400));
     const payload = {
@@ -27,6 +27,7 @@ exports.mintToken = (0, async_handler_1.default)((req, res, next) => __awaiter(v
         ticker,
         maxSupply,
         address,
+        mintAddress,
     };
     const token = new token_model_1.default(payload);
     const link = yield (0, image_handler_1.uploadImage)(req, FOLDER);
@@ -36,7 +37,7 @@ exports.mintToken = (0, async_handler_1.default)((req, res, next) => __awaiter(v
     yield token.save({ validateBeforeSave: true });
     res.status(201).json({ status: "success", data: token });
 }));
-exports.gettoken = (0, async_handler_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+exports.getToken = (0, async_handler_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
     const token = yield token_model_1.default.findOne({ tokenId: id });
     if (!token)

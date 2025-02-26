@@ -8,7 +8,7 @@ const FOLDER = "token";
 
 export const mintToken = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { name, ticker, maxSupply, address } = req.body;
+    const { name, ticker, maxSupply, address, mintAddress } = req.body;
 
     if (!req.file) return next(new AppError("Please upload an image", 400));
 
@@ -17,6 +17,7 @@ export const mintToken = asyncHandler(
       ticker,
       maxSupply,
       address,
+      mintAddress,
     };
 
     const token = new Token(payload);
@@ -31,7 +32,7 @@ export const mintToken = asyncHandler(
   }
 );
 
-export const gettoken = asyncHandler(
+export const getToken = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
 

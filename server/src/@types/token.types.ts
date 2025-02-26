@@ -4,4 +4,5 @@ export interface Itoken {
   maxSupply: number;
   address: string;
   ticker: string;
+  mintAddress: string;
 }

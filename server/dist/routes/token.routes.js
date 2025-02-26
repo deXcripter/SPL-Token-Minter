@@ -8,6 +8,6 @@ const token_controller_1 = require("../controllers/token.controller");
 const multer_1 = __importDefault(require("../middleware/multer"));
 const router = express_1.default.Router();
 router.post("/", multer_1.default.single("image"), token_controller_1.mintToken);
-router.route("/:id").get(token_controller_1.gettoken);
+router.route("/:id").get(token_controller_1.getToken);
 router.get("/wallet/:walletId", token_controller_1.getWallettokens);
 exports.default = router;
