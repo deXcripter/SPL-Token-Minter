@@ -19,21 +19,20 @@ const token_model_1 = __importDefault(require("../models/token.model"));
 const image_handler_1 = require("../lib/image-handler");
 const FOLDER = "token";
 exports.mintToken = (0, async_handler_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const { name, ticker, maxSupply, mintAddress } = req.body;
+    const { name, ticker, maxSupply, address } = req.body;
+    if (!req.file)
+        return next(new app_error_1.default("Please upload an image", 400));
     const payload = {
         name,
         ticker,
         maxSupply,
-        mintAddress,
-        imageUrl: "",
+        address,
     };
-    if (!req.file)
-        return next(new app_error_1.default("Please upload an image", 400));
+    const token = new token_model_1.default(payload);
     const link = yield (0, image_handler_1.uploadImage)(req, FOLDER);
     if (link instanceof app_error_1.default)
         return next(link);
-    payload.imageUrl = link;
-    const token = new token_model_1.default(payload);
+    token.imageUrl = link;
     yield token.save({ validateBeforeSave: true });
     res.status(201).json({ status: "success", data: token });
 }));
@@ -50,10 +49,10 @@ exports.getWallettokens = (0, async_handler_1.default)((req, res, next) => __awa
     const pageInt = parseInt(page);
     const limitInt = parseInt(limit);
     const skip = (pageInt - 1) * limitInt;
-    const tokens = yield token_model_1.default.find({ userAddress: wallet })
+    const tokens = yield token_model_1.default.find({ address: wallet })
         .skip(skip)
         .limit(limitInt);
-    const total = yield token_model_1.default.countDocuments({ userAddress: wallet });
+    const total = yield token_model_1.default.countDocuments({ address: wallet });
     const totalPages = Math.ceil(total / limitInt);
     const hasNext = pageInt < totalPages;
     const hasPrev = pageInt > 1;

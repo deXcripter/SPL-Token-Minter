@@ -2,30 +2,38 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import GradientButton from "@/components/GradientButton";
 import SolidButton from "@/components/SolidButton";
+import axiosInstance from "@/lib/axios";
+import { useWallet } from "@solana/wallet-adapter-react";
+import GradientButton from "@/components/GradientButton";
+import { useRouter } from "next/navigation";
 
 interface TokenData {
   name: string;
   ticker: string;
   maxSupply: string;
-  image?: string;
+  imageUrl: string;
   mintAddress: string;
 }
 
 function CollectionPage() {
   const [tokens, setTokens] = useState<TokenData[]>([]);
   const [loading, setLoading] = useState(false);
+  const { publicKey, connected } = useWallet();
+  const router = useRouter();
+
+  const handleMint = () => {
+    router.push("/mint");
+  };
 
   const fetchCollection = async () => {
     setLoading(true);
     try {
-      const res = await fetch("https://backend.com/api/collection/");
-      if (!res.ok) {
-        throw new Error("Failed to fetch tokens");
-      }
-      const data = await res.json();
-      setTokens(data);
+      const res = await axiosInstance.get(`/wallet/${publicKey?.toBase58()}`);
+
+      if (!res.data) throw new Error("Failed to fetch tokens");
+      setTokens(res.data.data);
+      console.log(res.data.data);
     } catch (error) {
       console.error(error);
       toast.error("Failed to fetch token collection");
@@ -35,22 +43,15 @@ function CollectionPage() {
   };
 
   useEffect(() => {
+    if (!connected) {
+      toast.error("Please connect your wallet to view your collection");
+      router.push("/");
+    }
     fetchCollection();
-  }, []);
+  }, [connected]);
 
   return (
-    <div
-      style={{
-        background: "linear-gradient(to right, #000000, #111827)",
-        minHeight: "100vh",
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-      className="py-5"
-    >
+    <div className="py-5 min-h-screen w-full flex flex-col items-center bg-gradient-to-r from-black to-gray-900">
       <h2 className="text-white text-3xl font-bold mb-6">
         My Token Collection
       </h2>
@@ -60,54 +61,48 @@ function CollectionPage() {
       ) : tokens.length === 0 ? (
         <p className="text-white">No minted tokens found.</p>
       ) : (
-        tokens.map((tokenItem, idx) => (
-          <div
-            key={idx}
-            className="mt-10 w-[40%] max-w-2xl py-10 rounded-2xl shadow-lg border border-[#1F2937] text-[#9CA3AF]"
-            style={{
-              backgroundColor: "rgba(17, 24, 39, 0.5)",
-              border: "1px solid #10b981",
-            }}
-          >
-            <div className="text-center flex flex-col justify-center gap-4">
-              {tokenItem.image ? (
-                <img
-                  src={tokenItem.image}
-                  alt={tokenItem.name}
-                  className="h-25 w-25 mx-auto"
-                />
-              ) : (
-                <div className="h-25 w-25 mx-auto bg-gray-700 flex items-center justify-center">
-                  <span className="text-white">No Image</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl px-4">
+          {tokens.map((tokenItem, idx) => (
+            <div
+              key={idx}
+              className="p-6 rounded-2xl shadow-lg border border-green-500 bg-gray-900 bg-opacity-50 text-gray-300"
+            >
+              <div className="flex flex-col items-center gap-4">
+                {tokenItem.imageUrl ? (
+                  <img
+                    src={tokenItem.imageUrl}
+                    alt={tokenItem.name}
+                    className="h-24 w-24 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="h-24 w-24 bg-gray-700 flex items-center justify-center rounded-full">
+                    <span className="text-white">No image</span>
+                  </div>
+                )}
+                <h2 className="text-green-500 font-bold text-2xl">
+                  {tokenItem.name}
+                </h2>
+              </div>
+
+              {/* Token details card */}
+              <div className="bg-gray-800 rounded-xl p-4 mt-6">
+                <div className="flex justify-between text-lg">
+                  <p>Token Name:</p>
+                  <p className="text-green-400">{tokenItem.name}</p>
                 </div>
-              )}
-              <h2 className="text-[#10B981] font-bold text-3xl">
-                {tokenItem.name}
-              </h2>
-              <p>Your token has been minted.</p>
-            </div>
-            {/* Token details card */}
-            <div className="bg-[#1F2937] rounded-xl overflow-hidden my-8 w-[90%] m-auto">
-              <div className="flex flex-col gap-1 p-2 px-8">
-                <div className="flex gap-5 justify-between">
-                  <p className="text-2xl">Token Name:</p>
-                  <p className="text-2xl text-green-600">{tokenItem.name}</p>
+                <div className="flex justify-between text-lg">
+                  <p>Token Symbol:</p>
+                  <p className="text-green-400">{tokenItem.ticker}</p>
                 </div>
-                <div className="flex gap-5 justify-between">
-                  <p className="text-2xl">Token Symbol:</p>
-                  <p className="text-2xl text-green-600">{tokenItem.ticker}</p>
+                <div className="flex justify-between text-lg">
+                  <span>Supply:</span>
+                  <span className="text-green-400">{tokenItem.maxSupply}</span>
                 </div>
-                <div className="flex gap-5 justify-between">
-                  <span className="text-2xl">Supply:</span>
-                  <span className="text-2xl text-green-600">
-                    {tokenItem.maxSupply}
-                  </span>
-                </div>
-                <div className="flex gap-5 justify-between">
-                  <p className="text-2xl">Token Address:</p>
+                <div className="flex justify-between text-lg">
+                  <p>Token Address:</p>
                   <a
                     href={`https://explorer.solana.com/address/${tokenItem.mintAddress}?cluster=devnet`}
-                    className="text-xl text-green-600"
+                    className="text-green-400 underline"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -116,15 +111,20 @@ function CollectionPage() {
                 </div>
               </div>
             </div>
-          </div>
-        ))
+          ))}
+        </div>
       )}
 
-      <div className="flex gap-6 mt-6">
+      <div className="flex gap-6 pt-6">
         <SolidButton
-          imagePath="refresh.png"
+          imagePath="play-btn.png"
           text="Refresh"
           handleClick={fetchCollection}
+        />
+        <GradientButton
+          imagePath=""
+          text="Mint new tokens"
+          handleClick={handleMint}
         />
       </div>
     </div>

@@ -16,9 +16,11 @@ import * as token from "@solana/spl-token";
 import { toast } from "react-toastify";
 import SolidButton from "@/components/SolidButton";
 import axiosInstance from "@/lib/axios";
+import { useRouter } from "next/navigation";
 
 function Page() {
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
   const [mintSignature, setMintSignature] = useState("");
   const [mintAddress, setMintAddress] = useState<PublicKey | null>(null);
   const [accTx, setAccTx] = useState("");
@@ -170,6 +172,10 @@ function Page() {
         image: file,
       }));
     }
+  };
+
+  const handleCollectionNav = () => {
+    router.push("/collection");
   };
 
   const createTokenAccount = async (mintAddr: PublicKey) => {
@@ -455,7 +461,11 @@ function Page() {
           </div>
 
           <div className="flex h-14 gap-6 text-white w-[90%] m-auto">
-            <SolidButton imagePath="share.png" text="Share" />
+            <SolidButton
+              imagePath="share.png"
+              text="Share"
+              handleClick={handleCollectionNav}
+            />
             <GradientButton
               text="Mint Another"
               imagePath="Vector.png"

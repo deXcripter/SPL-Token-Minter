@@ -8,22 +8,23 @@ const FOLDER = "token";
 
 export const mintToken = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { name, ticker, maxSupply, mintAddress } = req.body;
+    const { name, ticker, maxSupply, address } = req.body;
+
+    if (!req.file) return next(new AppError("Please upload an image", 400));
 
     const payload = {
       name,
       ticker,
       maxSupply,
-      mintAddress,
-      imageUrl: "",
+      address,
     };
 
-    if (!req.file) return next(new AppError("Please upload an image", 400));
+    const token = new Token(payload);
+
     const link = await uploadImage(req, FOLDER);
     if (link instanceof AppError) return next(link);
-    payload.imageUrl = link;
+    token.imageUrl = link;
 
-    const token = new Token(payload);
     await token.save({ validateBeforeSave: true });
 
     res.status(201).json({ status: "success", data: token });
@@ -53,10 +54,10 @@ export const getWallettokens = asyncHandler(
     const limitInt = parseInt(limit);
     const skip = (pageInt - 1) * limitInt;
 
-    const tokens = await Token.find({ userAddress: wallet })
+    const tokens = await Token.find({ address: wallet })
       .skip(skip)
       .limit(limitInt);
-    const total = await Token.countDocuments({ userAddress: wallet });
+    const total = await Token.countDocuments({ address: wallet });
 
     const totalPages = Math.ceil(total / limitInt);
     const hasNext = pageInt < totalPages;

@@ -18,7 +18,7 @@ const tokenSchema = new mongoose.Schema<Itoken>(
       required: true,
     },
 
-    mintAddress: {
+    address: {
       type: String,
       required: true,
     },
