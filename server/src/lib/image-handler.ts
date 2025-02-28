@@ -13,7 +13,7 @@ const uploadImage = async (
   const filename = `${folder}-${Date.now()}`;
   const path = req.file.path;
 
-  if (type !== "image" || !["jpg", "jpeg", "png"].includes(ext)) {
+  if (type !== "image" || !["jpg", "jpeg", "png", "webp"].includes(ext)) {
     await fs.unlink(path);
     throw new AppError("Invalid file type. Please upload an image file.", 400);
   }
