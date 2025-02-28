@@ -56,6 +56,7 @@ export const getWallettokens = asyncHandler(
     const skip = (pageInt - 1) * limitInt;
 
     const tokens = await Token.find({ address: wallet })
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitInt);
     const total = await Token.countDocuments({ address: wallet });

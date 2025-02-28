@@ -29,7 +29,6 @@ exports.mintToken = (0, async_handler_1.default)((req, res, next) => __awaiter(v
         address,
         mintAddress,
     };
-    console.log(req.body, payload);
     const token = new token_model_1.default(payload);
     const link = yield (0, image_handler_1.uploadImage)(req, FOLDER);
     if (link instanceof app_error_1.default)
@@ -52,6 +51,7 @@ exports.getWallettokens = (0, async_handler_1.default)((req, res, next) => __awa
     const limitInt = parseInt(limit);
     const skip = (pageInt - 1) * limitInt;
     const tokens = yield token_model_1.default.find({ address: wallet })
+        .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitInt);
     const total = yield token_model_1.default.countDocuments({ address: wallet });

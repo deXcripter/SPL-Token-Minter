@@ -22,7 +22,7 @@ const uploadImage = (req, folder) => __awaiter(void 0, void 0, void 0, function*
     const [type, ext] = req.file.mimetype.split("/");
     const filename = `${folder}-${Date.now()}`;
     const path = req.file.path;
-    if (type !== "image" || !["jpg", "jpeg", "png"].includes(ext)) {
+    if (type !== "image" || !["jpg", "jpeg", "png", "webp"].includes(ext)) {
         yield promises_1.default.unlink(path);
         throw new app_error_1.default("Invalid file type. Please upload an image file.", 400);
     }
