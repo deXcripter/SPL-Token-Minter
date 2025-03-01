@@ -1,81 +1,185 @@
 "use client";
 
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import {
-  WalletDisconnectButton,
-  WalletMultiButton,
-} from "@solana/wallet-adapter-react-ui";
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { useEffect, useState } from "react";
-import { BeatLoader } from "react-spinners";
+import { toast } from "react-toastify";
+import SolidButton from "@/components/SolidButton";
+import axiosInstance from "@/lib/axios";
+import { useWallet } from "@solana/wallet-adapter-react";
+import GradientButton from "@/components/GradientButton";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { ArrowPathIcon, SparklesIcon } from "@heroicons/react/24/outline";
+import Skeleton from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 
-function NavBar() {
+interface TokenData {
+  name: string;
+  ticker: string;
+  maxSupply: string;
+  imageUrl: string;
+  mintAddress: string;
+}
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
+function CollectionPage() {
+  const [tokens, setTokens] = useState<TokenData[]>([]);
+  const [loading, setLoading] = useState(false);
   const { publicKey, connected } = useWallet();
-  const { connection } = useConnection();
-  const [solBalance, setSolBalance] = useState<number | null>(null);
-  const [loadingBalance, setLoadingBalance] = useState(false);
+  const router = useRouter();
 
-  // Fetch balance when publicKey or connection changes
-  useEffect(() => {
-    if (publicKey && connected) {
-      fetchBalance();
-    } else {
-      setSolBalance(null); // Reset balance when wallet is disconnected
-    }
-  }, [publicKey, connected]);
+  const handleMint = () => router.push("/mint");
 
-  const fetchBalance = async () => {
-    if (!publicKey) return;
-    setLoadingBalance(true);
+  const fetchCollection = async () => {
+    setLoading(true);
     try {
-      const balanceInLamports = await connection.getBalance(publicKey);
-      const balanceInSOL = balanceInLamports / LAMPORTS_PER_SOL;
-      setSolBalance(balanceInSOL);
+      const res = await axiosInstance.get(`/wallet/${publicKey?.toBase58()}`);
+      setTokens(res.data?.data || []);
     } catch (error) {
-      console.error("Failed to fetch balance:", error);
-      setSolBalance(null);
+      toast.error("Failed to fetch token collection");
     } finally {
-      setLoadingBalance(false);
+      setLoading(false);
     }
   };
 
-  return (
-    <div className="bg-black/80 backdrop-blur-md flex justify-between items-center w-full px-6 sm:px-10 py-3 h-16 fixed top-0 left-0 z-50 border-b border-gray-800">
-      {/* Logo or Balance Section */}
-      <div className="flex items-center gap-4">
-        {!connected ? (
-          <img
-            src="Vector.png"
-            height={32}
-            width={32}
-            alt="Logo"
-            className="hover:opacity-80 transition-opacity"
-          />
-        ) : (
-          <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-2 rounded-lg shadow-lg">
-              {loadingBalance ? (
-                <BeatLoader color="#FFFFFF" size={8} />
-              ) : (
-                <p className="text-white font-medium text-sm sm:text-base">
-                  Balance: {solBalance !== null ? solBalance.toFixed(2) : "N/A"}{" "}
-                  SOL
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+  useEffect(() => {
+    if (!connected) {
+      toast.error("Please connect your wallet");
+      router.push("/");
+    } else {
+      fetchCollection();
+    }
+  }, [connected]);
 
-      {/* Wallet Buttons */}
-      <div className="flex gap-3 sm:gap-4">
-        <WalletMultiButton className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium px-4 py-2 rounded-lg transition-all shadow-lg hover:shadow-purple-500/20" />
-        {connected && (
-          <WalletDisconnectButton className="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded-lg transition-all shadow-lg hover:shadow-red-500/20" />
-        )}
+  return (
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-900 via-black to-gray-900 my-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="text-center mb-16">
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-5xl font-bold bg-gradient-to-r from-green-400 to-cyan-500 bg-clip-text text-transparent mb-4"
+          >
+            Digital Asset Vault
+          </motion.h1>
+
+          <div className="flex justify-center gap-4 mb-8">
+            <GradientButton
+              text="Mint New Token"
+              handleClick={handleMint}
+              icon={<SparklesIcon className="h-5 w-5" />}
+            />
+            <SolidButton
+              text="Refresh Collection"
+              handleClick={fetchCollection}
+              icon={<ArrowPathIcon className="h-5 w-5" />}
+            />
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[...Array(3)].map((_, idx) => (
+                <div
+                  key={idx}
+                  className="p-6 rounded-3xl bg-gray-800 bg-opacity-40 backdrop-blur-lg border border-gray-700"
+                >
+                  <Skeleton height={200} borderRadius="1.5rem" />
+                </div>
+              ))}
+            </div>
+          ) : tokens.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-24"
+            >
+              <div className="mb-8 inline-block bg-gray-800 p-8 rounded-3xl">
+                <SparklesIcon className="h-24 w-24 text-gray-600 mx-auto" />
+                <h3 className="text-2xl text-gray-300 mt-4">
+                  Your collection is empty
+                </h3>
+                <p className="text-gray-500 mt-2">
+                  Start by minting your first token
+                </p>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+            >
+              {tokens.map((tokenItem, idx) => (
+                <motion.div
+                  key={idx}
+                  variants={cardVariants}
+                  className="group relative"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-cyan-600 rounded-3xl opacity-20 group-hover:opacity-30 transition-opacity" />
+                  <div className="relative rounded-3xl bg-gray-800 bg-opacity-40 backdrop-blur-lg border border-gray-700 hover:border-green-500 transition-all duration-300">
+                    <div
+                      key={idx}
+                      className="p-6 rounded-2xl shadow-lg border border-green-500 bg-gray-900 bg-opacity-50 text-gray-300"
+                    >
+                      <div className="flex flex-col items-center gap-4">
+                        {tokenItem.imageUrl ? (
+                          <img
+                            src={tokenItem.imageUrl}
+                            alt={tokenItem.name}
+                            className="h-24 w-24 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-24 w-24 bg-gray-700 flex items-center justify-center rounded-full">
+                            <span className="text-white">No image</span>
+                          </div>
+                        )}
+                        <h2 className="text-green-500 font-bold text-2xl">
+                          {tokenItem.name}
+                        </h2>
+                      </div>
+
+                      {/* Token details card */}
+                      <div className="bg-gray-800 rounded-xl p-4 mt-6">
+                        <div className="flex justify-between text-lg">
+                          <p>Token Name:</p>
+                          <p className="text-green-400">{tokenItem.name}</p>
+                        </div>
+                        <div className="flex justify-between text-lg">
+                          <p>Token Symbol:</p>
+                          <p className="text-green-400">{tokenItem.ticker}</p>
+                        </div>
+                        <div className="flex justify-between text-lg">
+                          <span>Supply:</span>
+                          <span className="text-green-400">
+                            {tokenItem.maxSupply}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-lg">
+                          <p>Token Address:</p>
+                          <a
+                            href={`https://explorer.solana.com/address/${tokenItem.mintAddress}?cluster=devnet`}
+                            className="text-green-400 underline"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            View in explorer
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-export default NavBar;
+export default CollectionPage;

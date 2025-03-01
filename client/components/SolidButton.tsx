@@ -1,28 +1,24 @@
 function SolidButton({
   text,
-  imagePath,
-  height = "58",
-  radius = "7",
+  icon,
   handleClick,
+  isDisabled,
 }: {
   text: string;
-  imagePath: string;
-  height?: string;
-  radius?: string;
+  icon?: React.ReactNode;
+  isDisabled?: boolean;
   handleClick?: React.MouseEventHandler<HTMLButtonElement>;
 }) {
   return (
     <button
-      className={`w-full h-[${height}px] flex items-center justify-center gap-2 px-4 whitespace-nowrap`}
-      style={{
-        backgroundColor: "#1F2937",
-        borderRadius: `${radius}px`,
-        border: "1px solid #374151",
-      }}
+      className="w-full h-14 flex items-center justify-center gap-2 px-6 whitespace-nowrap 
+                 bg-gray-800 rounded-xl border border-gray-700 hover:border-green-500 
+                 transition-all duration-200 text-white font-medium"
       onClick={handleClick}
+      disabled={isDisabled}
     >
-      <img src={imagePath} alt="" className="w-6 h-6" />
-      <span className="text-white">{text}</span>
+      {icon}
+      <span>{text}</span>
     </button>
   );
 }

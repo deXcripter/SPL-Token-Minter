@@ -1,29 +1,23 @@
 function GradientButton({
   text,
-  imagePath,
-  height = "58",
-  radius = "7",
+  icon,
   handleClick,
   isDisabled,
 }: {
   text: string;
-  imagePath: string;
-  height?: string;
-  radius?: string;
+  icon?: React.ReactNode;
   isDisabled?: boolean;
   handleClick?: React.MouseEventHandler<HTMLButtonElement>;
 }) {
   return (
     <button
-      className={`w-full h-[${height}px] flex items-center justify-center gap-2 px-4 whitespace-nowrap`}
-      style={{
-        background: "linear-gradient(to right, #EC4899, #8B5CF6)",
-        borderRadius: `${radius}px`,
-      }}
+      className="w-full h-14 flex items-center justify-center gap-2 px-6 whitespace-nowrap 
+                 bg-gradient-to-r from-pink-500 to-purple-600 rounded-xl hover:opacity-90 
+                 transition-opacity duration-200 text-white font-medium"
       onClick={handleClick}
       disabled={isDisabled}
     >
-      <img src={imagePath} alt="" />
+      {icon}
       <span>{text}</span>
     </button>
   );
