@@ -20,7 +20,7 @@ function NavBar() {
   const setBalance = async () => {
     if (!publicKey) return;
     const conn = await connection.getBalance(publicKey);
-    setSolBalance((conn * 2) / LAMPORTS_PER_SOL);
+    setSolBalance(conn / LAMPORTS_PER_SOL);
   };
 
   return (
