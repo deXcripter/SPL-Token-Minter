@@ -86,7 +86,11 @@ function CollectionPage() {
                   key={idx}
                   className="p-6 rounded-3xl bg-gray-800 bg-opacity-40 backdrop-blur-lg border border-gray-700"
                 >
-                  <Skeleton height={200} borderRadius="1.5rem" />
+                  <Skeleton
+                    height={200}
+                    borderRadius="1.5rem"
+                    baseColor="purple"
+                  />
                 </div>
               ))}
             </div>

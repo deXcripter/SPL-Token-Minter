@@ -18,6 +18,11 @@ import SolidButton from "@/components/SolidButton";
 import axiosInstance from "@/lib/axios";
 import { useRouter } from "next/navigation";
 import { BeatLoader } from "react-spinners";
+import {
+  ArrowLeftIcon,
+  PhotoIcon,
+  SparklesIcon,
+} from "@heroicons/react/24/outline";
 
 function Page() {
   const [loading, setLoading] = useState(false);
@@ -299,7 +304,7 @@ function Page() {
 
   const LoadingOverlay = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center">
-      <div className="bg-gray-800 p-8 rounded-lg flex flex-col items-center space-y-4">
+      <div className="bg-gray-800 p-8 rounded-xl flex flex-col items-center space-y-4">
         <BeatLoader color="#10B981" size={15} />
         <p className="text-emerald-400 text-lg font-medium">{currentStep}</p>
       </div>
@@ -307,177 +312,189 @@ function Page() {
   );
 
   return (
-    <div
-      style={{
-        background: "linear-gradient(to right, #000000, #111827)",
-        minHeight: "100vh",
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-      className="py-5"
-    >
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-900 via-black to-gray-900 my-10">
       {currentStep && <LoadingOverlay />}
 
-      {!justMinted ? (
-        <form
-          className="mt-10 w-full max-w-2xl px-10 py-12 rounded-2xl shadow-lg border border-[#1F2937] text-[#9CA3AF]"
-          style={{
-            backgroundColor: "rgba(17, 24, 39, 0.5)",
-          }}
-          onSubmit={handleSubmit}
-        >
-          <h2 className="text-white text-2xl font-bold mb-6">
-            Create New Token
-          </h2>
+      <div className="max-w-4xl mx-auto px-4 py-12">
+        {!justMinted ? (
+          <div className="bg-gray-800/50 backdrop-blur-lg rounded-3xl border border-gray-700 p-8">
+            <div className="flex items-center justify-between mb-8">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-cyan-500 bg-clip-text text-transparent">
+                Create New Token
+              </h1>
+              <button
+                onClick={() => router.push("/collection")}
+                className="flex items-center gap-2 text-gray-400 hover:text-gray-200 transition-colors"
+              >
+                <ArrowLeftIcon className="h-5 w-5" />
+                Back to Collection
+              </button>
+            </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Token Name</label>
-            <input
-              type="text"
-              name="name"
-              placeholder="Enter token name (e.g. My Awesome Token)"
-              className="w-full p-2 bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={formData.name}
-              onChange={handleInputChange}
-              required
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">
-              Ticker Symbol
-            </label>
-            <input
-              type="text"
-              name="ticker"
-              placeholder="Enter ticker (e.g. MAWS)"
-              className="w-full p-2 bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              maxLength={5}
-              value={formData.ticker}
-              onChange={handleInputChange}
-              required
-            />
-            <p className="text-xs mt-1 text-gray-400">Max 5 characters</p>
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Max Supply</label>
-            <input
-              type="number"
-              name="maxSupply"
-              placeholder="Enter total supply (e.g. 1000000)"
-              className="w-full p-2 bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              min="1"
-              value={formData.maxSupply}
-              onChange={handleInputChange}
-              required
-            />
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">
-              Token Image
-            </label>
-            <div className="flex items-center gap-4">
-              <label className="cursor-pointer">
-                <span className="sr-only">Choose token logo</span>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Token Name
+                </label>
                 <input
-                  type="file"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleImageUpload}
+                  type="text"
+                  name="name"
+                  placeholder="My Awesome Token"
+                  className="w-full p-3 bg-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none text-gray-100 placeholder-gray-500"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
                 />
-                <div className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 transition-colors">
-                  Upload Image
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Ticker Symbol
+                </label>
+                <input
+                  type="text"
+                  name="ticker"
+                  placeholder="MAWS"
+                  className="w-full p-3 bg-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none text-gray-100 placeholder-gray-500 uppercase"
+                  maxLength={5}
+                  value={formData.ticker}
+                  onChange={handleInputChange}
+                  required
+                />
+                <p className="text-xs mt-2 text-gray-400">Max 5 characters</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Max Supply
+                </label>
+                <input
+                  type="number"
+                  name="maxSupply"
+                  placeholder="1000000"
+                  className="w-full p-3 bg-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none text-gray-100 placeholder-gray-500"
+                  min="1"
+                  value={formData.maxSupply}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Token Image
+                </label>
+                <div className="flex items-center gap-4">
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                    />
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors">
+                      <PhotoIcon className="h-5 w-5 text-gray-400" />
+                      <span>Upload Image</span>
+                    </div>
+                  </label>
+                  {preview && (
+                    <img
+                      src={preview}
+                      alt="Token preview"
+                      className="w-12 h-12 rounded-lg object-cover border-2 border-gray-600"
+                    />
+                  )}
                 </div>
-              </label>
-              {formData.image && (
-                <img
-                  src={preview || ""}
-                  alt="Token preview"
-                  className="w-12 h-12 rounded-full object-cover"
+                <p className="text-xs mt-2 text-gray-400">
+                  Recommended size: 256x256px
+                </p>
+              </div>
+
+              <GradientButton
+                text="Create Token"
+                handleClick={handleSubmit}
+                isDisabled={!!currentStep}
+                icon={<SparklesIcon className="h-5 w-5" />}
+              />
+            </form>
+          </div>
+        ) : (
+          <div className="bg-gray-800/50 backdrop-blur-lg rounded-3xl border border-green-500/20 p-8">
+            <div className="text-center">
+              <div className="inline-block p-6 rounded-full bg-green-500/10 mb-6">
+                <SparklesIcon className="h-12 w-12 text-green-400" />
+              </div>
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-cyan-500 bg-clip-text text-transparent mb-4">
+                Token Minted Successfully!
+              </h2>
+              <p className="text-gray-400 mb-8">
+                Your token has been created and added to your collection
+              </p>
+
+              <div className="bg-gray-700/50 rounded-xl p-6 mb-8">
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Token Name</span>
+                    <span className="font-medium text-green-400">
+                      {formData.name}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Token Symbol</span>
+                    <span className="font-medium text-green-400">
+                      {formData.ticker}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Supply</span>
+                    <span className="font-medium text-green-400">
+                      {formData.maxSupply}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-300">Token Address</span>
+                    <a
+                      href={`https://explorer.solana.com/address/${accAddr?.toBase58()}?cluster=devnet`}
+                      className="text-green-400 hover:text-green-300 flex items-center gap-1"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      View Explorer
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="w-4 h-4"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+                        />
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-center gap-4">
+                <SolidButton
+                  text="View Collection"
+                  handleClick={handleCollectionNav}
+                  icon={<ArrowLeftIcon className="h-5 w-5" />}
                 />
-              )}
-            </div>
-            <p className="text-xs mt-1 text-gray-400">
-              Recommended size: 256x256px
-            </p>
-          </div>
-
-          <div className="w-full h-[3rem] text-white flex">
-            <GradientButton
-              imagePath="Vector.png"
-              text="Create Token"
-              height="58"
-              isDisabled={!!currentStep}
-            />
-          </div>
-        </form>
-      ) : (
-        <div
-          className="mt-10 w-[40%] max-w-2xl py-10 rounded-2xl shadow-lg border border-[#1F2937] text-[#9CA3AF]"
-          style={{
-            backgroundColor: "rgba(17, 24, 39, 0.5)",
-            border: "1px solid #10b981",
-          }}
-        >
-          <div className="text-center flex flex-col justify-center gap-4">
-            <img
-              src="div.png"
-              alt={formData.name}
-              className="h-25 w-25 mx-auto"
-            />
-            <h2 className="text-[#10B981] font-bold text-3xl">
-              Token Minted Sucessfully
-            </h2>
-            <p>Your token has been created and added to your collection</p>
-          </div>
-          <div className="bg-[#1F2937] rounded-xl overflow-hidden my-8 w-[90%] m-auto">
-            <div className="flex flex-col gap-1 p-2 px-8">
-              <div className="flex gap-5 justify-between">
-                <p className="text-2xl">Token Name</p>
-                <p className="text-2xl text-green-600">{formData.name}</p>
-              </div>
-              <div className="flex gap-5 justify-between">
-                <p className="text-2xl">Token Symbol</p>
-                <p className="text-2xl text-green-600">{formData.ticker}</p>
-              </div>
-              <div className="flex gap-5 justify-between">
-                <span className="text-2xl"> Supply </span>
-                <span className="text-2xl text-green-600">
-                  {formData.maxSupply}
-                </span>
-              </div>
-              <div className="flex gap-5 justify-between">
-                <p className="text-2xl">Token Address</p>
-                <a
-                  href={`https://explorer.solana.com/address/${accAddr!.toBase58()}?cluster=devnet`}
-                  className="text-xl text-green-600"
-                  target="_blank"
-                >
-                  Click to view in explorer
-                </a>
+                <GradientButton
+                  text="Mint Another"
+                  handleClick={handleNewMint}
+                  icon={<SparklesIcon className="h-5 w-5" />}
+                />
               </div>
             </div>
           </div>
-
-          <div className="flex h-14 gap-6 text-white w-[90%] m-auto">
-            <SolidButton
-              imagePath="share.png"
-              text="View in collection"
-              handleClick={handleCollectionNav}
-            />
-            <GradientButton
-              text="Mint Another"
-              imagePath="Vector.png"
-              handleClick={handleNewMint}
-            />
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
