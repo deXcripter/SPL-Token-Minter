@@ -47,11 +47,11 @@ function Page() {
     image: null,
   });
 
-  const connection = new Connection(clusterApiUrl("devnet"));
+  const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
   const { connected, publicKey, sendTransaction, wallet } = useWallet();
 
   const connectionErr = () => {
-    if (!connected) {
+    if (!connected || !publicKey) {
       toast.error("Please connect your wallet");
       setCurrentStep(null);
       return true;
@@ -63,7 +63,7 @@ function Page() {
     mintAddr: PublicKey,
     data: { imageLink: string }
   ) => {
-    if (!wallet) return toast.error("Wallet not connected");
+    if (!wallet || !publicKey) return toast.error("Wallet not connected");
 
     try {
       setCurrentStep("Setting token metadata...");
@@ -84,9 +84,9 @@ function Page() {
           {
             metadata: metadataPDA,
             mint: mintAddr,
-            mintAuthority: publicKey!,
-            payer: publicKey!,
-            updateAuthority: publicKey!,
+            mintAuthority: publicKey,
+            payer: publicKey,
+            updateAuthority: publicKey,
           },
           {
             createMetadataAccountArgsV3: {
@@ -107,7 +107,7 @@ function Page() {
         )
       );
 
-      transaction.feePayer = publicKey!;
+      transaction.feePayer = publicKey;
       const signature = await sendTransaction(transaction, connection);
       await connection.confirmTransaction(signature, "confirmed");
       setJustMinted(true);
@@ -119,18 +119,20 @@ function Page() {
     }
   };
 
-  const createMint = async () => {
+  const createMintAndTokenAccount = async () => {
     if (connectionErr()) {
       setLoading(false);
       return;
     }
 
     try {
-      setCurrentStep("Creating mint account...");
+      setCurrentStep("Creating mint and token account...");
       const tokenMint = Keypair.generate();
+      const account = Keypair.generate();
       const lamports = await token.getMinimumBalanceForRentExemptAccount(
         connection
       );
+
       const transaction = new Transaction().add(
         SystemProgram.createAccount({
           fromPubkey: publicKey!,
@@ -145,11 +147,30 @@ function Page() {
           publicKey!,
           null,
           token.TOKEN_PROGRAM_ID
+        ),
+        SystemProgram.createAccount({
+          fromPubkey: publicKey!,
+          newAccountPubkey: account.publicKey,
+          space: token.ACCOUNT_SIZE,
+          lamports,
+          programId: token.TOKEN_PROGRAM_ID,
+        }),
+        token.createInitializeAccountInstruction(
+          account.publicKey,
+          tokenMint.publicKey,
+          publicKey!,
+          token.TOKEN_PROGRAM_ID
+        ),
+        token.createMintToInstruction(
+          tokenMint.publicKey,
+          account.publicKey,
+          publicKey!,
+          parseInt(formData.maxSupply) * 10 ** 6
         )
       );
 
       const signature = await sendTransaction(transaction, connection, {
-        signers: [tokenMint],
+        signers: [tokenMint, account],
       });
 
       await connection.confirmTransaction(signature);
@@ -157,9 +178,37 @@ function Page() {
       toast.done("Token minted successfully");
       setMintAddress(new PublicKey(tokenMint.publicKey.toBase58()));
       setMintSignature(signature);
-      await createTokenAccount(new PublicKey(tokenMint.publicKey.toBase58()));
+      setAccAddr(account.publicKey);
+
+      const data = new FormData();
+      data.append("name", formData.name);
+      data.append("ticker", formData.ticker);
+      data.append("maxSupply", formData.maxSupply);
+      if (formData.image) data.append("image", formData.image);
+      data.append("address", publicKey!.toBase58());
+      data.append("mintAddress", account.publicKey.toBase58());
+
+      setCurrentStep("Uploading metadata...");
+      const res = await axiosInstance.post("/", data, {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = progressEvent.total
+            ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            : 0;
+          setCurrentStep(`Uploading metadata... ${percentCompleted}%`);
+        },
+      });
+      await setTokenMetadata(tokenMint.publicKey, {
+        imageLink: res.data.data.imageUrl,
+      });
+      toast.success("Token minted successfully");
+      setMintTokenTxSignature(signature);
     } catch (error) {
+      console.error(error);
+      toast.error("Error minting token");
       setCurrentStep(null);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -187,89 +236,6 @@ function Page() {
     router.push("/collection");
   };
 
-  const createTokenAccount = async (mintAddr: PublicKey) => {
-    if (connectionErr()) return toast.error("Please connect your wallet");
-    if (!mintAddr) throw new Error("No Mint Address");
-
-    try {
-      setCurrentStep("Creating token account...");
-      const account = Keypair.generate();
-      const space = token.ACCOUNT_SIZE;
-      const lamports = await token.getMinimumBalanceForRentExemptAccount(
-        connection
-      );
-      const transaction = new Transaction().add(
-        SystemProgram.createAccount({
-          fromPubkey: publicKey!,
-          newAccountPubkey: account.publicKey,
-          space,
-          lamports,
-          programId: token.TOKEN_PROGRAM_ID,
-        }),
-        token.createInitializeAccountInstruction(
-          account.publicKey,
-          mintAddr,
-          publicKey!,
-          token.TOKEN_PROGRAM_ID
-        )
-      );
-
-      const signature = await sendTransaction(transaction, connection, {
-        signers: [account],
-      });
-      await connection.confirmTransaction(signature);
-      setAccTx(signature);
-      setAccAddr(account.publicKey);
-      await mintToken(mintAddr, account.publicKey);
-    } catch (err) {
-      console.error(err);
-      toast.error("Error creating token account");
-      setCurrentStep(null);
-    }
-  };
-
-  const mintToken = async (mintAddr: PublicKey, accAddr: PublicKey) => {
-    if (connectionErr()) return;
-    if (!publicKey) return toast.error("No public key found");
-
-    try {
-      setCurrentStep("Minting tokens...");
-      const transaction = new Transaction().add(
-        token.createMintToInstruction(
-          mintAddr,
-          accAddr,
-          publicKey,
-          parseInt(formData.maxSupply) * 10 ** 6
-        )
-      );
-
-      transaction.feePayer = publicKey;
-      const signature = await sendTransaction(transaction, connection);
-      await connection.confirmTransaction(signature);
-
-      const data = new FormData();
-      data.append("name", formData.name);
-      data.append("ticker", formData.ticker);
-      data.append("maxSupply", formData.maxSupply);
-      if (formData.image) data.append("image", formData.image);
-      data.append("address", publicKey!.toBase58());
-      data.append("mintAddress", accAddr.toBase58());
-
-      setCurrentStep("Uploading metadata...");
-      const res = await axiosInstance.post("/", data, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      await setTokenMetadata(mintAddr, { imageLink: res.data.data.imageUrl });
-      toast.success("Token minted successfully");
-      setMintTokenTxSignature(signature);
-    } catch (err) {
-      console.error(err);
-      toast.error("Error minting token");
-    } finally {
-      setCurrentStep(null);
-    }
-  };
-
   const handleNewMint = () => {
     setJustMinted(false);
     setFormData({
@@ -292,13 +258,15 @@ function Page() {
       return toast.error("Please fill all fields");
     }
 
+    if (!connected || !publicKey) {
+      return toast.error("Please connect your wallet");
+    }
+
     try {
       setLoading(true);
-      await createMint();
+      await createMintAndTokenAccount();
     } catch (err) {
       setCurrentStep(null);
-    } finally {
-      setLoading(false);
     }
   };
 
