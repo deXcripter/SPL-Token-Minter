@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Wallet from "@/providers/WalletProvider";
 import NavBar from "@/components/NavBar";
+import Script from "next/script";
 import { ToastContainer } from "react-toastify";
 
 const geistSans = Geist({
@@ -30,6 +31,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <Script
+  src="https://cdn.exeolabs.xyz/script.js"
+  strategy="afterInteractive"
+  data-site="efeb32ad-22dd-450d-b93a-f7567edbf294"
+/>
         <ToastContainer />
         <Wallet>
           <NavBar />
